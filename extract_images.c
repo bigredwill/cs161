@@ -7,6 +7,50 @@
 #define READ_BUF_LENGTH 1024
 
 
+void clear_buffer(char *buf);
+void readToBuf(FILE *pipe, char *buf, char *cmmd, char const *video_path);
+void extractMeta(char const *video_path, int *width, int *height, int *fcount, float *fps);
+void extractStills(FILE *pipe, char const *video_path, char *dir, float fps);
+
+int main(int argc, char const *argv[])
+{
+
+	FILE *pipe_fp;
+	char readbuf[80];
+	char fcount_probe_cmmd[1024] = "ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 ";
+	char fps_probe_cmmd[1024] = "ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1:nokey=1 ";
+	char y_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=height ";
+	char x_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=width ";
+
+	int width, height, fcount;
+	float fps;
+
+	/*
+	Check if video file location was passed in.
+	*/
+	if(argc != 2) {
+		printf("Program accepts 2 args. ./%s <video file> \n", argv[0]);
+		return 1;
+	}
+
+	extractMeta(argv[1], &width, &height, &fcount, &fps);
+
+	printf("%d %d %d %f\n", width, height, fcount, fps);
+	
+
+	char *dir = "test";
+	extractStills(argv[1], dir, fps);
+	
+	//connect to database
+	//store meta data in database.video_meta
+	//get video_id
+	//create local directory with unique name = video_id
+	// use ffmpeg to extract images from frames 
+
+	return 0;
+}
+
+
 void clear_buffer(char *buf) {
 	int toClear = strlen(buf);
 	memset(&buf[0], 0, sizeof(buf));
@@ -24,7 +68,71 @@ void readToBuf(FILE *pipe, char *buf, char *cmmd, char const *vid) {
 	pclose(pipe);
 }
 
-void extractStills(FILE *pipe, char const *video_path, char *dir, float fps) {
+
+void extractMeta(char const *video_path, int *width, int *height, int *fcount, float *fps) {
+	FILE *pipe_fp;
+	char readbuf[80];
+	char fcount_probe_cmmd[1024] = "ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 ";
+	char fps_probe_cmmd[1024] = "ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1:nokey=1 ";
+	char y_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=height ";
+	char x_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=width ";
+
+	/*
+	Extract frame count information from video.
+	*/
+
+	readToBuf(pipe_fp, readbuf, fcount_probe_cmmd, video_path);
+
+	if(sscanf(readbuf, "%d", fcount) != 1) {
+		// printf("Frame Count could not be read.\n");
+	}
+	printf("Frame Count: %d\n", *fcount);
+	clear_buffer(readbuf);
+
+
+	/*
+	Extract fps information from video.
+	*/
+	readToBuf(pipe_fp, readbuf, fps_probe_cmmd, video_path);
+
+	int _n, _d; //must extract 
+	if(sscanf(readbuf, "%d/%d", &_n, &_d) != 1) {
+		// printf("FPScould not be read.\n");
+	}
+
+	float _f = ((float) _n / (float) _d);
+	memcpy(fps, &_f, sizeof(float));
+
+	printf("FPS (%d/%d) : %f\n", _n, _d, *fps);
+	clear_buffer(readbuf);
+
+	/*
+	Extract height information from video.
+	*/
+	readToBuf(pipe_fp, readbuf, y_probe_cmmd, video_path);
+
+	if(sscanf(readbuf, "streams_stream_0_height=%d", height) != 1) {
+		// printf("FPScould not be read.\n");
+	}
+	printf("Height: %d\n", *height);
+	clear_buffer(readbuf);
+
+	/*
+	Extract width information from video.
+	*/
+	readToBuf(pipe_fp, readbuf, x_probe_cmmd, video_path);
+	
+	if(sscanf(readbuf, "streams_stream_0_width=%d", width) != 1) {
+		// printf("FPScould not be read.\n");
+	}
+	printf("Width: %d\n", *width);
+	clear_buffer(readbuf);
+}
+
+
+void extractStills(char const *video_path, char *dir, float fps) {
+	FILE *pipe_fp;
+
 	struct stat st = {0};
 	//check if directory exists already
 	if(stat(dir, &st) == -1) {
@@ -52,97 +160,10 @@ void extractStills(FILE *pipe, char const *video_path, char *dir, float fps) {
 	printf("%s\n", extract_frames_cmmd);
 
 	//execute command then close pipe
-	if ((pipe = popen(extract_frames_cmmd, "r")) == NULL) {
+	if ((pipe_fp = popen(extract_frames_cmmd, "r")) == NULL) {
 		perror("popen");
 		exit(1);
 	}
-	pclose(pipe);
+	pclose(pipe_fp);
 }
-
-int main(int argc, char const *argv[])
-{
-
-	FILE *pipe_fp;
-	char readbuf[80];
-	char fcount_probe_cmmd[1024] = "ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 ";
-	char fps_probe_cmmd[1024] = "ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1:nokey=1 ";
-	char y_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=height ";
-	char x_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=width ";
-
-	// char *fcount
-
-	int width, height, fcount;
-	float fps;
-
-	/*
-	Check if video file location was passed in.
-	*/
-	if(argc != 2) {
-		printf("Program accepts 2 args. ./%s <video file> \n", argv[0]);
-		return 1;
-	}
-
-
-	/*
-	Extract frame count information from video.
-	*/
-
-	readToBuf(pipe_fp, readbuf, fcount_probe_cmmd, argv[1]);
-
-	if(sscanf(readbuf, "%d", &fcount) != 1) {
-		// printf("Frame Count could not be read.\n");
-	}
-	printf("Frame Count: %d\n", fcount);
-	clear_buffer(readbuf);
-
-
-	/*
-	Extract fps information from video.
-	*/
-	readToBuf(pipe_fp, readbuf, fps_probe_cmmd, argv[1]);
-
-	int _n, _d; //must extract 
-	if(sscanf(readbuf, "%d/%d", &_n, &_d) != 1) {
-		// printf("FPScould not be read.\n");
-	}
-
-	fps = (float)_n / (float)_d;
-	printf("FPS (%d/%d) : %f\n", _n, _d, fps);
-	clear_buffer(readbuf);
-
-	/*
-	Extract height information from video.
-	*/
-	readToBuf(pipe_fp, readbuf, y_probe_cmmd, argv[1]);
-
-	if(sscanf(readbuf, "streams_stream_0_height=%d", &height) != 1) {
-		// printf("FPScould not be read.\n");
-	}
-	printf("Height: %d\n", height);
-	clear_buffer(readbuf);
-
-	/*
-	Extract width information from video.
-	*/
-	readToBuf(pipe_fp, readbuf, x_probe_cmmd, argv[1]);
-	
-	if(sscanf(readbuf, "streams_stream_0_width=%d", &width) != 1) {
-		// printf("FPScould not be read.\n");
-	}
-	printf("Width: %d\n", width);
-	clear_buffer(readbuf);
-
-	char *dir = "test";
-	extractStills(pipe_fp, argv[1], dir, fps);
-	
-	//connect to database
-	//store meta data in database.video_meta
-	//get video_id
-	//create local directory with unique name = video_id
-	// use ffmpeg to extract images from frames 
-
-	return 0;
-}
-
-
 
