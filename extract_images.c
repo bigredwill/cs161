@@ -10,7 +10,7 @@
 void clear_buffer(char *buf);
 void readToBuf(FILE *pipe, char *buf, char *cmmd, char const *video_path);
 void extractMeta(char const *video_path, int *width, int *height, int *fcount, float *fps);
-void extractStills(FILE *pipe, char const *video_path, char *dir, float fps);
+void extractStills(char const *video_path, char *dir, float fps);
 
 int main(int argc, char const *argv[])
 {
@@ -36,16 +36,14 @@ int main(int argc, char const *argv[])
 	extractMeta(argv[1], &width, &height, &fcount, &fps);
 
 	printf("%d %d %d %f\n", width, height, fcount, fps);
-	
 
+	//put meta in database.video_meta
+
+	//get unique video_id
+	//pass video_id as directory
+	
 	char *dir = "test";
 	extractStills(argv[1], dir, fps);
-	
-	//connect to database
-	//store meta data in database.video_meta
-	//get video_id
-	//create local directory with unique name = video_id
-	// use ffmpeg to extract images from frames 
 
 	return 0;
 }
@@ -137,8 +135,9 @@ void extractStills(char const *video_path, char *dir, float fps) {
 	//check if directory exists already
 	if(stat(dir, &st) == -1) {
 		mkdir(dir, 0700);
+		printf("Created directory %s\n", dir);
 	} else {
-		printf("Directory already exists\n");
+		printf("Directory %s already exists\n", dir);
 	}
 
 
@@ -155,7 +154,7 @@ void extractStills(char const *video_path, char *dir, float fps) {
 	strcat(extract_frames_cmmd, str_fps);
 
 	strcat(extract_frames_cmmd, dir);
-	strcat(extract_frames_cmmd, "/out\%d.png");
+	strcat(extract_frames_cmmd, "/0.\%d.png");
 
 	printf("%s\n", extract_frames_cmmd);
 
