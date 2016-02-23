@@ -1,3 +1,6 @@
+/*
+	Will Simons
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +11,14 @@
 #define READ_BUF_LENGTH 1024
 #define MAX_DB_STATEMENT_BUFFER_LENGTH 5000
 
+/*
+	Change these variables to match your database.
+*/
+#define DBNAME "cs161"
+#define HOST "localhost"
+#define PORT "5432"
+#define USER "postgres"
+#define PASSWORD "password"
 
 void clear_buffer(char *buf);
 void pipe_to_buffer(FILE *pipe, char *buf, char *cmmd, char const *video_path);
@@ -25,14 +36,23 @@ int main(int argc, char const *argv[])
 	Check if video file location was passed in.
 	*/
 	if(argc != 2) {
-		printf("Program accepts 2 args. ./%s <video file> \n", argv[0]);
+		printf("Program accepts 2 args. ./%s <path/to/video/file> \n", argv[0]);
 		return 1;
 	}
 
-	extract_meta(argv[1], &width, &height, &fcount, &fps);
+	//help
+	if (strcmp(argv[0], "-h") == 0)
+	{
+		printf("Extracts still images from video file to directory named by unique id given to video in database.");
+		printf("\n%s <path/to/video/file>\n", argv[0]);
+		return 1;
+	}
 
+	//Extracts meta from video into width, height, f(rame)count, fps variables
+	extract_meta(argv[1], &width, &height, &fcount, &fps);
+	//Insert Video Metadata into database. 
   char *unique_id = insert_video_meta(argv[1], width, height, fcount, fps);
-	
+	//Extract still images from video into directory named by unique_id
 	extract_stills(argv[1], unique_id, fps);
 
 	return 0;
@@ -40,18 +60,20 @@ int main(int argc, char const *argv[])
 
 
 /*
-Inserts video meta into database.
+	Inserts video metadata into database.
+	Connects to database
 */
 char * insert_video_meta(char const *name, int width, int height, int fcount, float fps) {
 	char db_statement[MAX_DB_STATEMENT_BUFFER_LENGTH];
-	const char *conninfo;
+	char conninfo[MAX_DB_STATEMENT_BUFFER_LENGTH];
 	PGconn *conn;
 	PGresult *res;
 	int num_rows;
 	int i, j;
 	char *unique_id = "-1";
 
-	conninfo = "dbname = 'cs161' host = 'localhost' port = '5432' user = 'postgres' password = 'password'";
+	snprintf(&conninfo[0], MAX_DB_STATEMENT_BUFFER_LENGTH,"dbname = '%s' host = '%s' port = '%s' user = '%s' password = '%s'",
+				DBNAME, HOST, PORT, USER, PASSWORD);
 	conn = PQconnectdb(conninfo);
 
 	if(PQstatus(conn) != CONNECTION_OK) 
@@ -64,23 +86,22 @@ char * insert_video_meta(char const *name, int width, int height, int fcount, fl
 	snprintf(&db_statement[0], MAX_DB_STATEMENT_BUFFER_LENGTH, "INSERT INTO video_meta (name, num_frames, x_resolution, y_resolution, fps) VALUES ('%s', %d, %d, %d, %f) RETURNING video_id;",
 					name, fcount, width, height, fps);
 
-
 	res = PQexec(conn, &db_statement[0]);
 
 	switch (PQresultStatus(res)) {
 		case PGRES_COMMAND_OK: 
 			printf("Executed command, no return.\n");
 			break;
+
 		case PGRES_TUPLES_OK: 
 			num_rows = PQntuples(res);
 			for(i = 0; i < PQntuples(res); i++)
 			{
 				for(j = 0; j < num_rows; j++) 
 				{
-					unique_id = PQgetvalue(res, i, j);
+					unique_id = PQgetvalue(res, i, j); //should just be one value, for loops really unnecessary.
 				}
 			}
-
 			break;
 
 		default:
@@ -120,7 +141,9 @@ void pipe_to_buffer(FILE *pipe, char *buf, char *cmmd, char const *vid)
 	pclose(pipe);
 }
 
-
+/*
+	Extract Meta information from video using ffprobe.
+*/
 void extract_meta(char const *video_path, int *width, int *height, int *fcount, float *fps)
 {
 	FILE *pipe_fp;
@@ -195,11 +218,13 @@ void extract_stills(char const *video_path, char *dir, float fps) {
 		mkdir(dir, 0700);
 		printf("Created directory %s\n", dir);
 	} else {
-		printf("Directory %s already exists\n", dir);
+		printf("Directory %s already exists, could not create directory.\n", dir);
+		pclose(pipe_fp);
+		exit(1);
 	}
 
-
-	char extract_frames_cmmd[2048] = "ffmpeg -i ";//IMG_2461.MOV -vf fps=29.982466 testout/out\%d.png"
+	//constructing this `ffmpeg -i IMG_2461.MOV -vf fps=29.982466 testout/out\%d.png"`
+	char extract_frames_cmmd[2048] = "ffmpeg -i ";
 	
 	//construct ffmpeg command 
 	strcat(extract_frames_cmmd, video_path);

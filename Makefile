@@ -18,7 +18,7 @@ LFLAGS =
 LIBS = -L`pg_config --libdir` -lpq
 
 # define the C source files
-SRCS = extract_images.c
+SRCS = Simons_Will_assignment_2.c
 
 # define the C object files 
 #

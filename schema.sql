@@ -1,5 +1,5 @@
 
-CREATE TABLE Video_Meta(
+CREATE TABLE video_meta(
 	video_id bigserial primary key not null,
 	name text,
 	num_frames int not null,
@@ -16,7 +16,7 @@ CREATE TYPE bbox_type AS ENUM (
 	'Mouth'
 );
 
-CREATE TABLE Bounding_Boxes (
+CREATE TABLE bounding_boxes (
 	bbox_id bigserial not null,
 	video_id bigint not null,
 	frame_number bigint not null,
@@ -26,7 +26,7 @@ CREATE TABLE Bounding_Boxes (
 	height int not null
 );
 
-CREATE TABLE Pupils (
+CREATE TABLE pupils (
 	video_id bigint not null,
 	frame_number bigint not null,
 	bbox_id bigint not null,
@@ -34,7 +34,7 @@ CREATE TABLE Pupils (
 	right_eye_coords point not null
 );
 
-CREATE TABLE STASM (
+CREATE TABLE stasm (
 	video_id bigint not null,
 	frame_number bigint not null,
 	stasm_coords point[]
