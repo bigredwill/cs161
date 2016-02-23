@@ -1,27 +1,23 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <libpq-fe.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 
 #define READ_BUF_LENGTH 1024
+#define MAX_DB_STATEMENT_BUFFER_LENGTH 5000
 
 
 void clear_buffer(char *buf);
-void readToBuf(FILE *pipe, char *buf, char *cmmd, char const *video_path);
-void extractMeta(char const *video_path, int *width, int *height, int *fcount, float *fps);
-void extractStills(char const *video_path, char *dir, float fps);
+void pipe_to_buffer(FILE *pipe, char *buf, char *cmmd, char const *video_path);
+void extract_meta(char const *video_path, int *width, int *height, int *fcount, float *fps);
+void extract_stills(char const *video_path, char *dir, float fps);
+char *insert_video_meta(char const *name, int width, int height, int fcount, float fps);
 
 int main(int argc, char const *argv[])
 {
-
-	FILE *pipe_fp;
-	char readbuf[80];
-	char fcount_probe_cmmd[1024] = "ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 ";
-	char fps_probe_cmmd[1024] = "ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1:nokey=1 ";
-	char y_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=height ";
-	char x_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=width ";
-
+	//Initialize variables
 	int width, height, fcount;
 	float fps;
 
@@ -33,28 +29,86 @@ int main(int argc, char const *argv[])
 		return 1;
 	}
 
-	extractMeta(argv[1], &width, &height, &fcount, &fps);
+	extract_meta(argv[1], &width, &height, &fcount, &fps);
 
-	printf("%d %d %d %f\n", width, height, fcount, fps);
-
-	//put meta in database.video_meta
-
-	//get unique video_id
-	//pass video_id as directory
+  char *unique_id = insert_video_meta(argv[1], width, height, fcount, fps);
 	
-	char *dir = "test";
-	extractStills(argv[1], dir, fps);
+	extract_stills(argv[1], unique_id, fps);
 
 	return 0;
 }
 
 
-void clear_buffer(char *buf) {
+/*
+Inserts video meta into database.
+*/
+char * insert_video_meta(char const *name, int width, int height, int fcount, float fps) {
+	char db_statement[MAX_DB_STATEMENT_BUFFER_LENGTH];
+	const char *conninfo;
+	PGconn *conn;
+	PGresult *res;
+	int num_rows;
+	int i, j;
+	char *unique_id = "-1";
+
+	conninfo = "dbname = 'cs161' host = 'localhost' port = '5432' user = 'postgres' password = 'password'";
+	conn = PQconnectdb(conninfo);
+
+	if(PQstatus(conn) != CONNECTION_OK) 
+	{
+		printf("Connetion to database failed: %s\n", PQerrorMessage(conn));
+		PQfinish(conn);
+		exit(EXIT_FAILURE);
+	}
+
+	snprintf(&db_statement[0], MAX_DB_STATEMENT_BUFFER_LENGTH, "INSERT INTO video_meta (name, num_frames, x_resolution, y_resolution, fps) VALUES ('%s', %d, %d, %d, %f) RETURNING video_id;",
+					name, fcount, width, height, fps);
+
+
+	res = PQexec(conn, &db_statement[0]);
+
+	switch (PQresultStatus(res)) {
+		case PGRES_COMMAND_OK: 
+			printf("Executed command, no return.\n");
+			break;
+		case PGRES_TUPLES_OK: 
+			num_rows = PQntuples(res);
+			for(i = 0; i < PQntuples(res); i++)
+			{
+				for(j = 0; j < num_rows; j++) 
+				{
+					unique_id = PQgetvalue(res, i, j);
+				}
+			}
+
+			break;
+
+		default:
+			printf("Something went wrong.\n");
+			break;
+	}
+
+	PQfinish(conn);
+	return unique_id;
+
+}
+
+
+/*
+Clears char* buffer.
+*/
+void clear_buffer(char *buf) 
+{
 	int toClear = strlen(buf);
 	memset(&buf[0], 0, sizeof(buf));
 }
 
-void readToBuf(FILE *pipe, char *buf, char *cmmd, char const *vid) {
+
+/*
+	Executes cmmd through popen and returns output to buffer.
+*/
+void pipe_to_buffer(FILE *pipe, char *buf, char *cmmd, char const *vid)
+{
 	strcat(cmmd, vid);
 	if ((pipe = popen(cmmd, "r")) == NULL) {
 		perror("popen");
@@ -67,9 +121,10 @@ void readToBuf(FILE *pipe, char *buf, char *cmmd, char const *vid) {
 }
 
 
-void extractMeta(char const *video_path, int *width, int *height, int *fcount, float *fps) {
+void extract_meta(char const *video_path, int *width, int *height, int *fcount, float *fps)
+{
 	FILE *pipe_fp;
-	char readbuf[80];
+	char readbuf[80]; //todo: magic number, not good
 	char fcount_probe_cmmd[1024] = "ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of default=nokey=1:noprint_wrappers=1 ";
 	char fps_probe_cmmd[1024] = "ffprobe -v error -select_streams v:0 -show_entries stream=avg_frame_rate -of default=noprint_wrappers=1:nokey=1 ";
 	char y_probe_cmmd[1024] = "ffprobe -v error -of flat=s=_ -select_streams v:0 -show_entries stream=height ";
@@ -79,7 +134,7 @@ void extractMeta(char const *video_path, int *width, int *height, int *fcount, f
 	Extract frame count information from video.
 	*/
 
-	readToBuf(pipe_fp, readbuf, fcount_probe_cmmd, video_path);
+	pipe_to_buffer(pipe_fp, readbuf, fcount_probe_cmmd, video_path);
 
 	if(sscanf(readbuf, "%d", fcount) != 1) {
 		// printf("Frame Count could not be read.\n");
@@ -91,7 +146,7 @@ void extractMeta(char const *video_path, int *width, int *height, int *fcount, f
 	/*
 	Extract fps information from video.
 	*/
-	readToBuf(pipe_fp, readbuf, fps_probe_cmmd, video_path);
+	pipe_to_buffer(pipe_fp, readbuf, fps_probe_cmmd, video_path);
 
 	int _n, _d; //must extract 
 	if(sscanf(readbuf, "%d/%d", &_n, &_d) != 1) {
@@ -107,7 +162,7 @@ void extractMeta(char const *video_path, int *width, int *height, int *fcount, f
 	/*
 	Extract height information from video.
 	*/
-	readToBuf(pipe_fp, readbuf, y_probe_cmmd, video_path);
+	pipe_to_buffer(pipe_fp, readbuf, y_probe_cmmd, video_path);
 
 	if(sscanf(readbuf, "streams_stream_0_height=%d", height) != 1) {
 		// printf("FPScould not be read.\n");
@@ -118,7 +173,7 @@ void extractMeta(char const *video_path, int *width, int *height, int *fcount, f
 	/*
 	Extract width information from video.
 	*/
-	readToBuf(pipe_fp, readbuf, x_probe_cmmd, video_path);
+	pipe_to_buffer(pipe_fp, readbuf, x_probe_cmmd, video_path);
 	
 	if(sscanf(readbuf, "streams_stream_0_width=%d", width) != 1) {
 		// printf("FPScould not be read.\n");
@@ -128,7 +183,10 @@ void extractMeta(char const *video_path, int *width, int *height, int *fcount, f
 }
 
 
-void extractStills(char const *video_path, char *dir, float fps) {
+/*
+Calls ffmpeg to extract stills from video.
+*/
+void extract_stills(char const *video_path, char *dir, float fps) {
 	FILE *pipe_fp;
 
 	struct stat st = {0};
@@ -141,15 +199,15 @@ void extractStills(char const *video_path, char *dir, float fps) {
 	}
 
 
-	char extract_frames_cmmd[1024] = "ffmpeg -i ";//IMG_2461.MOV -vf fps=29.982466 testout/out\%d.png"
-
+	char extract_frames_cmmd[2048] = "ffmpeg -i ";//IMG_2461.MOV -vf fps=29.982466 testout/out\%d.png"
+	
 	//construct ffmpeg command 
 	strcat(extract_frames_cmmd, video_path);
 
 	strcat(extract_frames_cmmd, " -vf fps=");
  
 	//convert fps (float) to string
-	char str_fps[10];
+	char str_fps[100];
 	sprintf(str_fps, "%f ", fps);
 	strcat(extract_frames_cmmd, str_fps);
 

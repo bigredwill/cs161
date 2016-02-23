@@ -1,6 +1,7 @@
 
 CREATE TABLE Video_Meta(
 	video_id bigserial primary key not null,
+	name text,
 	num_frames int not null,
 	x_resolution int not null,
 	y_resolution int not null,
