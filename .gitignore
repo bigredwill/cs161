@@ -30,3 +30,9 @@
 
 # Debug files
 *.dSYM/
+
+#Mac indexing file
+.DS_Store
+
+#Ignore generated images folders
+images/
