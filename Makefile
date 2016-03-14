@@ -33,12 +33,14 @@ A4SRCS = draw_bounding_boxes.cpp bounding_box.c
 # with the .o suffix
 #
 OBJS = $(SRCS:.c=.o)
+A2OBJS = $(A2SRCS:.c=.o)
 A3OBJS = $(A3SRCS:.c=.o)
 A4OBJS = $(A4SRCS:.c=.o)
 
 # define the executable file 
 MAIN = prog
 
+A2 = A2
 A3 = A3
 A4 = A4
 
@@ -53,6 +55,9 @@ A4 = A4
 
 $(MAIN): $(OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
+
+$(A2): $(A2OBJS) 
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(A2) $(A2OBJS) $(LFLAGS) $(LIBS)
 
 $(A3): $(A3OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(A3) $(A3OBJS) $(LFLAGS) $(LIBS)

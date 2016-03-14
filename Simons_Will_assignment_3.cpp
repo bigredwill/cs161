@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 {
 	
   char input_filename[1280];
-  strcpy (&input_filename[0], "1/0.70.png");
+  // strcpy (&input_filename[0], "1/0.70.png");
 
   /*
 		Get Input File Directory
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	int i;
 	for (i = 1; i <= num_frames; i++) {
 
-		sprintf(input_filename, "%d/0.%d.png", video_id, i);
+		sprintf(input_filename, "images/%d/0.%d.png", video_id, i);
 		printf("\r\tProgress: %d/%d", i, num_frames); //Carriage return, clears input, shows progress.
 		fflush(stdout);
 
@@ -180,11 +180,11 @@ void find_features_in_image(char *input_filename, int video_id, int frame_number
   BoundingBox *mouth_bb = BoundingBox_new();
 
 
-  if(face_cascade.load ("haarcascade_frontalface_alt2.xml") 
-  		&& left_eye_cascade.load ("ojoI.xml")
-  		&& right_eye_cascade.load ("ojoD.xml")
-  		&& nose_cascade.load ("Nariz.xml")
-  		&& mouth_cascade.load ("Mouth.xml")) 
+  if(face_cascade.load ("HaarXML/haarcascade_frontalface_alt2.xml") 
+  		&& left_eye_cascade.load ("HaarXML/ojoI.xml")
+  		&& right_eye_cascade.load ("HaarXML/ojoD.xml")
+  		&& nose_cascade.load ("HaarXML/Nariz.xml")
+  		&& mouth_cascade.load ("HaarXML/Mouth.xml")) 
   {
   	
   	BoundingBox_init(face_bb, "Face");
@@ -312,7 +312,6 @@ int insert_bounding_box(BoundingBox *bb, int video_id, int frame_number)
 	PQfinish(conn);
 	return 1;
 	
-	return 1;
 }
 
 /*

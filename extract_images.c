@@ -53,7 +53,9 @@ int main(int argc, char const *argv[])
 	//Insert Video Metadata into database. 
   char *unique_id = insert_video_meta(argv[1], width, height, fcount, fps);
 	//Extract still images from video into directory named by unique_id
-	extract_stills(argv[1], unique_id, fps);
+  char dir[1024] = "images/";
+  strcat(dir, argv[1]);
+	extract_stills(dir, unique_id, fps);
 
 	return 0;
 }
@@ -237,7 +239,7 @@ void extract_stills(char const *video_path, char *dir, float fps) {
 	strcat(extract_frames_cmmd, str_fps);
 
 	strcat(extract_frames_cmmd, dir);
-	strcat(extract_frames_cmmd, "/0.\%d.png");
+	strcat(extract_frames_cmmd, "/0.%d.png");
 
 	printf("%s\n", extract_frames_cmmd);
 

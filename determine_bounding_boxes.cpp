@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 	int i;
 	for (i = 1; i <= num_frames; i++) {
 
-		sprintf(input_filename, "%d/0.%d.png", video_id, i);
+		sprintf(input_filename, "images/%d/0.%d.png", video_id, i);
 		printf("\r\tProgress: %d/%d", i, num_frames); //Carriage return, clears input, shows progress.
 		fflush(stdout);
 

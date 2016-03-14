@@ -53,7 +53,9 @@ int main(int argc, char const *argv[])
 	//Insert Video Metadata into database. 
   char *unique_id = insert_video_meta(argv[1], width, height, fcount, fps);
 	//Extract still images from video into directory named by unique_id
-	extract_stills(argv[1], unique_id, fps);
+  char dir[1024] = "images/";
+  strcat(dir, unique_id);
+	extract_stills(argv[1], dir, fps);
 
 	return 0;
 }
@@ -63,14 +65,16 @@ int main(int argc, char const *argv[])
 	Inserts video metadata into database.
 	Connects to database
 */
-char * insert_video_meta(char const *name, int width, int height, int fcount, float fps) {
+char *insert_video_meta(char const *name, int width, int height, int fcount, float fps) {
 	char db_statement[MAX_DB_STATEMENT_BUFFER_LENGTH];
 	char conninfo[MAX_DB_STATEMENT_BUFFER_LENGTH];
 	PGconn *conn;
 	PGresult *res;
 	int num_rows;
 	int i, j;
-	char *unique_id = "-1";
+	char *unique_id;
+
+	// sprintf(unique_id, "-1");
 
 	snprintf(&conninfo[0], MAX_DB_STATEMENT_BUFFER_LENGTH,"dbname = '%s' host = '%s' port = '%s' user = '%s' password = '%s'",
 				DBNAME, HOST, PORT, USER, PASSWORD);
@@ -95,13 +99,7 @@ char * insert_video_meta(char const *name, int width, int height, int fcount, fl
 
 		case PGRES_TUPLES_OK: 
 			num_rows = PQntuples(res);
-			for(i = 0; i < PQntuples(res); i++)
-			{
-				for(j = 0; j < num_rows; j++) 
-				{
-					unique_id = PQgetvalue(res, i, j); //should just be one value, for loops really unnecessary.
-				}
-			}
+			unique_id = PQgetvalue(res, 0, 0);
 			break;
 
 		default:
