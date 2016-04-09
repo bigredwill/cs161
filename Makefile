@@ -1,7 +1,7 @@
 CC = g++
 
 # define any compile-time flags
-CFLAGS = -I`pg_config --includedir`
+CFLAGS = -I`pg_config --includedir` -lpthread 
 
 # define any directories containing header files other than /usr/include
 INCLUDES = 
@@ -19,10 +19,11 @@ LFLAGS =
 LIBS = `pkg-config --cflags --libs opencv` -L`pg_config --libdir` -lpq 
 
 # define the C source files
-SRCS = determine_bounding_boxes.cpp bounding_box.c
+
 A2SRCS = Simons_Will_assignment_2.c
 A3SRCS = Simons_Will_assignment_3.cpp bounding_box.c
-A4SRCS = draw_bounding_boxes.cpp bounding_box.c
+A4SRCS = Simons_Will_assignment_4.cpp bounding_box.C
+E4SRCS = e_draw_bounding_boxes.cpp bounding_box.c linkedlist.cpp
 
 # define the C object files 
 #
@@ -32,17 +33,18 @@ A4SRCS = draw_bounding_boxes.cpp bounding_box.c
 # Below we are replacing the suffix .c of all words in the macro SRCS
 # with the .o suffix
 #
-OBJS = $(SRCS:.c=.o)
+
 A2OBJS = $(A2SRCS:.c=.o)
 A3OBJS = $(A3SRCS:.c=.o)
 A4OBJS = $(A4SRCS:.c=.o)
+E4OBJS = $(E4SRCS:.c=.o)
 
 # define the executable file 
-MAIN = prog
 
 A2 = A2
 A3 = A3
 A4 = A4
+E4 = E4
 
 
 #
@@ -53,8 +55,6 @@ A4 = A4
 
 .PHONY: depend clean
 
-$(MAIN): $(OBJS) 
-	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)
 
 $(A2): $(A2OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(A2) $(A2OBJS) $(LFLAGS) $(LIBS)
@@ -64,6 +64,9 @@ $(A3): $(A3OBJS)
 
 $(A4): $(A4OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(A4) $(A4OBJS) $(LFLAGS) $(LIBS)
+
+$(E4): $(E4OBJS) 
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(E4) $(E4OBJS) $(LFLAGS) $(LIBS)
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
@@ -72,7 +75,7 @@ $(A4): $(A4OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN) $(A3) $(A4)
+	$(RM) *.o *~ $(MAIN) $(A2) $(A3) $(A4) $(E4)
 
 depend: $(SRCS)
 	makedepend $(INCLUDES) $^
