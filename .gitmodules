@@ -1,0 +1,3 @@
+[submodule "eyeLike"]
+	path = eyeLike
+	url = git@github.com:trishume/eyeLike.git

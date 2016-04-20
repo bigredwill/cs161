@@ -27,9 +27,8 @@ CREATE TABLE bounding_boxes (
 );
 
 CREATE TABLE pupils (
-	video_id bigint not null,
+	video_id bigint primary key not null,
 	frame_number bigint not null,
-	bbox_id bigint not null,
 	left_eye_coords point not null,
 	right_eye_coords point not null
 );
