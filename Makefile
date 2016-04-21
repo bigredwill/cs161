@@ -25,6 +25,7 @@ A3SRCS = Simons_Will_assignment_3.cpp bounding_box.c
 A4SRCS = Simons_Will_assignment_4.cpp bounding_box.C
 E4SRCS = e_draw_bounding_boxes.cpp bounding_box.c linkedlist.cpp
 A5SRCS = findEyeCenter.cpp helpers_eyeLike.cpp Simons_Will_assignment_5.cpp
+A6SRCS = Simons_Will_assignment_6.cpp
 
 # define the C object files 
 #
@@ -40,6 +41,7 @@ A3OBJS = $(A3SRCS:.c=.o)
 A4OBJS = $(A4SRCS:.c=.o)
 E4OBJS = $(E4SRCS:.c=.o)
 A5OBJS = $(A5SRCS:.c=.o)
+A6OBJS = $(A6SRCS:.c=.o)
 
 # define the executable file 
 
@@ -48,6 +50,7 @@ A3 = A3
 A4 = A4
 E4 = E4
 A5 = A5
+A6 = A6
 
 #
 # The following part of the makefile is generic; it can be used to 
@@ -72,6 +75,9 @@ $(E4): $(E4OBJS)
 
 $(A5): $(A5OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(A5) $(A5OBJS) $(LFLAGS) $(LIBS)
+
+$(A6): $(A6OBJS) 
+	$(CC) $(CFLAGS) $(INCLUDES) -o $(A6) $(A6OBJS) $(LFLAGS) $(LIBS)
 # this is a suffix replacement rule for building .o's from .c's
 # it uses automatic variables $<: the name of the prerequisite of
 # the rule(a .c file) and $@: the name of the target of the rule (a .o file) 
