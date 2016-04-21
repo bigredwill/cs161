@@ -86,7 +86,7 @@ $(A6): $(A6OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN) $(A2) $(A3) $(A4) $(E4) $(A5)
+	$(RM) *.o *~ $(MAIN) $(A2) $(A3) $(A4) $(E4) $(A5) $(A6)
 
 depend: $(SRCS)
 	makedepend $(INCLUDES) $^

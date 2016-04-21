@@ -1,3 +1,4 @@
+//Will Simons
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -91,7 +92,7 @@ int main(int argc, char *argv[])
 				lEyeCenter.x = -1;
 				lEyeCenter.y = -1;
 
-				//check if left_eye_bb
+				//get pupil locations
 				get_eye_pupils(&lEyeCenter, &rEyeCenter, video_id, i, conn);
 
 				if(lEyeCenter.x >= 0 && lEyeCenter.x >= 0) {
@@ -164,8 +165,6 @@ void save_temp_image(cv::Mat source_image, char *temp_directory, int video_id, i
 	Returns name of directory.
 */
 void create_temp_directory(char *temp_directory) {
-	// char *dir = (char *) malloc(sizeof(char) * READ_BUF_LENGTH);
-	// sprintf(dir, "temp");
 
 	struct stat st = {0};
 	if(stat(temp_directory, &st) == -1) {
